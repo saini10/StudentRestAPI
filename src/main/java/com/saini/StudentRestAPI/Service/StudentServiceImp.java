@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 
 import com.saini.StudentRestAPI.DAO.StudentDAO;
 import com.saini.StudentRestAPI.Entity.Student;
+import com.saini.StudentRestAPI.Exception.EmailAlreadyRegisteredException;
+import com.saini.StudentRestAPI.Exception.EmailNotFoundException;
+import com.saini.StudentRestAPI.Exception.FirstNameNotFoundException;
+import com.saini.StudentRestAPI.Exception.StudentNotFoundException;
 
 @Service
 public class StudentServiceImp implements StudentService {
@@ -21,13 +25,15 @@ public class StudentServiceImp implements StudentService {
 
 	@Override
 	public Student findById(int id) {
+		
+		if(id <= 0) throw new StudentNotFoundException("Invalid(negative or Zero) id");
 
 		Optional<Student> student = dao.findById(id);
 
 		if (student.isPresent()) {
 			return student.get();
 		} else {
-			throw new RuntimeException("Student with email " + id + " does not exists");
+			throw new StudentNotFoundException("Student with id " + id + " does not exists");
 		}
 
 	}
@@ -37,7 +43,7 @@ public class StudentServiceImp implements StudentService {
 		Optional<Student> student = dao.findByEmail(studentId);
 
 		if (student.isEmpty()) {
-			throw new RuntimeException("Student with email " + studentId + " does not exists");
+			throw new StudentNotFoundException("Student with email " + studentId + " does not exists");
 
 		} else {
 			return student.get();
@@ -52,6 +58,19 @@ public class StudentServiceImp implements StudentService {
 
 	@Override
 	public Student add(Student student) {
+		
+		if(student.getFirstName() == null) {
+			throw new FirstNameNotFoundException("First Name can not be null");
+		}
+		
+		if(student.getEmail() == null) {
+			throw new EmailNotFoundException("Email is mandatory for student registration");
+		}
+		
+		if(dao.findEmail(student.getEmail()) >= 1) {
+			throw new EmailAlreadyRegisteredException("Email " + student.getEmail() + " already registred.");
+		}
+		
 		return dao.save(student);
 	}
 
@@ -59,10 +78,29 @@ public class StudentServiceImp implements StudentService {
 	public Student update(Student student) {
 
 		// below line through error if student don't exist already
-		@SuppressWarnings("unused")
+		
+		
 		Student s = findById(student.getId());
-
+		
+		if(student.getFirstName() == null) {
+			throw new FirstNameNotFoundException("First Name can not be null");
+		}
+		
+		if(student.getEmail() == null) {
+			throw new EmailNotFoundException("Email is mandatory for student registration");
+		}
+		
+		if(s.getEmail().equals(student.getEmail())) {
+			return dao.save(student);
+		}
+		
+		if(dao.findEmail(student.getEmail()) >= 1) {
+			throw new EmailAlreadyRegisteredException("Email " + student.getEmail() + " already registred.");
+		}
+		
 		return dao.save(student);
+
+		
 	}
 
 	@Override
